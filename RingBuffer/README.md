@@ -23,9 +23,9 @@ Modulo is a very slow arithmetic operation (up to 90 CPU cycles compared to 1 cy
 
 ### This allows for correct wraparound of the head and tail.
 
-Some sizes that are not powers of 2 have the problematic quality that when an index wrap arounds, full buffers cannot be distinguished from empty buffers.
+Some sizes that are not powers of 2 have the problematic quality that when an index wrap arounds, index % `size` results in the same number.
 
-For example, say a buffer of size 17 and the write index is 0xffffffff (it's about to wrap around).  
+For example, say we have a buffer of size 17 and the write index is 0xffffffff (it's about to wrap around).  
 The producer will write to:  
 0xffffffff % 17 = 0  
 But, after the write index wraps around to 0, it will write to the same place:  
