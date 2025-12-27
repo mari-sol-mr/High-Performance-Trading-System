@@ -9,27 +9,37 @@ class RingBuffer {
                 "T must be trivially copyable for wait-free guarantees");
 public:
     RingBuffer()
-    : write_index(0)
-    , read_index(0)
+    : write_index_(0)
+    , read_index_(0)
     {}
 
-    bool write(const T& item)
+    bool push(const T& item)
     {
-        if (full())
+        const size_t write_index = write_index_.load(memory_order_relaxed);  // only written from push thread
+        
+        if (write_index - read_index_.load(memory_order_acquire) == capacity_)
             return false;
         
-        buffer[mask(write_index++)] = item;
+        std::construct_at(reinterpret_cast<T*>(&buffer[mask(write_index)]), item);
+
+        write_index_.store(write_index_ + 1, memory_order_release);
 
         return true;
     }
 
-    bool read(const T& item)
+    bool consume_one(auto&& func)
     {
-        if (empty())
+        const size_t write_index = write_index_.load(memory_order_acquire);
+        const size_t read_index  = read_index_.load(memory_order_relaxed);
+
+        if (write_index == read_index)
             return false;
 
-        T& elem = *reinterpret_cast<T*>(&buffer[mask(read_index++)]);
+        T& elem = *reinterpret_cast<T*>(&buffer[mask(read_index)]);
+        func(elem);
         std::destroy_at(&elem);
+
+        read_index_.store(read_index + 1, memory_order_release);
 
         return true;
     }
@@ -39,17 +49,7 @@ private:
         return val & (capacity_ - 1);
     }
 
-    bool full()
-    {
-        return write_index - read_index == capacity_;
-    }
-
-    bool empty()
-    {
-        return write_index == read_index;
-    }
-
-    alignas(std::hardware_destructive_interference_size) std::atomic<size_t> write_index;
-    alignas(std::hardware_destructive_interference_size) std::atomic<size_t> read_index;
+    alignas(std::hardware_destructive_interference_size) std::atomic<size_t> write_index_;
+    alignas(std::hardware_destructive_interference_size) std::atomic<size_t> read_index_;
     T* buffer[capacity_];
 };
