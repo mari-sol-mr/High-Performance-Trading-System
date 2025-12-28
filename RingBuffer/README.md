@@ -43,6 +43,15 @@ Must be in separate cache lines to avoid false-sharing.
 
 We align the atomic variables by the hardware_constructive_interference_size (the minimum offset between two objects in memory to avoid false sharing).
 
+## Memory Ordering
+
+Since the consumer and producer threads will be writing to and reading from shared variables (write_index and read_index), 
+it's important to ensure that out-of-order execution does not cause incorrect results. 
+
+The producer must write the new data to the buffer before incrementing write_index, or two issues might arise:
+1. we may write to the incorrect location (by writing to write_index + 1).
+2. The consumer thread will use the incremented write_index and try to read new data that hasn't been written yet!
+
 # API
 ```
 write(val) {      
