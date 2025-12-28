@@ -27,7 +27,8 @@ public:
         return true;
     }
 
-    bool consume_one(auto&& func)
+    template <typename Functor>
+    bool consume_one(Functor & func)
     {
         const size_t write_index = write_index_.load(memory_order_acquire);
         const size_t read_index  = read_index_.load(memory_order_relaxed);
