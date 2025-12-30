@@ -5,7 +5,6 @@
 #include <boost/lockfree/spsc_queue.hpp>
 #include <thread>
 #include "RingBuffer.hpp"
-#include "RingBuffer2.hpp"
 
 void runProducerConsumer(auto& buffer)
 {
@@ -42,7 +41,6 @@ int main() {
 
     boost::lockfree::spsc_queue<int> boost_buffer(1024);
     RingBuffer<int, 1024> my_ring_buffer;
-    RingBuffer2<int, 1024> my_ring_buffer2;
 
     ankerl::nanobench::Bench().minEpochIterations(400).epochs(2).warmup(5).run("my_ring_buffer", [&my_ring_buffer] {
             runProducerConsumer(my_ring_buffer);
@@ -50,9 +48,5 @@ int main() {
 
     ankerl::nanobench::Bench().minEpochIterations(400).epochs(2).warmup(5).run("boost_spsc", [&boost_buffer] {
             runProducerConsumer(boost_buffer);
-        });
-
-    ankerl::nanobench::Bench().minEpochIterations(400).epochs(2).warmup(5).run("my_ring_buffer2", [&my_ring_buffer2] {
-            runProducerConsumer(my_ring_buffer2);
         });
 }
