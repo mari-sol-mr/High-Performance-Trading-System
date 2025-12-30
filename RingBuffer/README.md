@@ -48,9 +48,9 @@ We align the atomic variables by the hardware_constructive_interference_size (th
 Since the consumer and producer threads will be writing to and reading from shared variables (write_index and read_index), 
 it's important to ensure that out-of-order execution does not cause incorrect results. 
 
-The producer must write the new data to the buffer before incrementing write_index, or two issues might arise:
-1. we may write to the incorrect location (by writing to write_index + 1).
-2. The consumer thread will use the incremented write_index and try to read new data that hasn't been written yet!
+The producer will load read_index to know if the buffer has space for new data. The consumer will update read_index to signal that data has been read from the buffer and that there is now more space for new data. We don't want the consumer updating read_index before it has actually consumed the data because this would falsely lead the producer to believe that there is space for new data and it could end up overwriting data that has not been consumed. So, the consumer must use memory_order_release on read_index when updating it to guarantee that all previous work has been completed (the data has been consumed and the buffer memory was freed). The producer will use memory_order_acquire so that it only loads read_index and writes to the buffer once the consumer has finished consuming some data.
+
+The consumer will load write_index to know if the buffer has data to be consumed. The producer will update write_index to signal that new data has been added to the buffer and it can now be consumed. We don't want the producer updating write_index before it has actually added new data to the buffer because this would falsely lead the consumer to believe that there is new data to consume and it could end up reading from the buffer before any new data has actually been added. So, the producer must use memory_order_release on write_index when updating it to guarantee that all previous work has been completed (the new data has been added to the buffer). The consumer will use memory_order_acquire so that it only loads write_index and reads from the buffer once the producer has finished adding new data.
 
 # API
 ```
