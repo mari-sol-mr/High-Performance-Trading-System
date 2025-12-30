@@ -1,3 +1,10 @@
+I create my own ring buffer and benchmark it against boost::lockfree::spsc_queue using nanobench.
+
+|               ns/op |                op/s |    err% |     total | benchmark
+|--------------------:|--------------------:|--------:|----------:|:----------
+|       22,106,857.18 |               45.23 |    3.0% |     18.15 | `my_ring_buffer`
+|       18,260,652.70 |               54.76 |    3.3% |     14.99 | `boost_spsc`
+
 # Design Choices
 ## Infinite atomic indeces
 After every read or write, the write and read indeces will not be updated so that their value is in the "correct range" (0 - size of the buffer). Instead, they will be unsigned integers that grow unbounded and eventually wrap around to 0. 
