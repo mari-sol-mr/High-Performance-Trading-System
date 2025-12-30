@@ -2,4 +2,9 @@
 
 Purpose: to learn high-performance design patterns.
 
-- [ ] Lock-free SPSC ring buffer
+- [x] Lock-free SPSC ring buffer   
+Concepts: 
+  - atomics and memory ordering
+  - cache false-sharing
+  - infinite indeces
+  - power of two properties.
