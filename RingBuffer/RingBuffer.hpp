@@ -11,7 +11,18 @@ public:
     RingBuffer()
     : write_index_(0)
     , read_index_(0)
-    {}
+    {
+        buffer = static_cast<T*>(malloc(capacity_*sizeof(T)));
+        assert(buffer != nullptr);
+    }
+
+    ~RingBuffer()
+
+    {
+        auto noop = [](T&) {};
+        while (consume_one(noop));
+        free(buffer);
+    }
 
     bool push(const T& item)
     {
@@ -19,8 +30,9 @@ public:
         
         if (write_index - read_index_.load(memory_order_acquire) == capacity_)
             return false;
-        
-        std::construct_at(reinterpret_cast<T*>(&buffer[mask(write_index)]), item);
+
+        buffer[mask(write_index)] = item;
+        new (buffer + mask(write_index)) T(item);
 
         write_index_.store(write_index_ + 1, memory_order_release);
 
@@ -38,7 +50,7 @@ public:
 
         T& elem = *reinterpret_cast<T*>(&buffer[mask(read_index)]);
         func(elem);
-        std::destroy_at(&elem);
+        elem.~T();
 
         read_index_.store(read_index + 1, memory_order_release);
 
@@ -52,5 +64,5 @@ private:
 
     alignas(std::hardware_destructive_interference_size) std::atomic<size_t> write_index_;
     alignas(std::hardware_destructive_interference_size) std::atomic<size_t> read_index_;
-    T* buffer[capacity_];
+    T* buffer;
 };

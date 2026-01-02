@@ -59,6 +59,12 @@ The producer will load read_index to know if the buffer has space for new data. 
 
 The consumer will load write_index to know if the buffer has data to be consumed. The producer will update write_index to signal that new data has been added to the buffer and it can now be consumed. We don't want the producer updating write_index before it has actually added new data to the buffer because this would falsely lead the consumer to believe that there is new data to consume and it could end up reading from the buffer before any new data has actually been added. So, the producer must use memory_order_release on write_index when updating it to guarantee that all previous work has been completed (the new data has been added to the buffer). The consumer will use memory_order_acquire so that it only loads write_index and reads from the buffer once the producer has finished adding new data.
 
+## Memory management
+I used placement new syntax to place new object in pre-allocated memory.  
+I experimented with new and delete and realized malloc and free were better -- although I may be wrong.  
+When using new, memory was allocated for the buffer, but objects were also created
+and placed in the buffer. Another issue was that the objects were destructed with `consume_one()` and then once again when the buffer is deleted with `delete[] buffer`. Using malloc and free allowed me to separate memory allocation from object creation. Malloc lets me reserve the memory, and I can construct the objects and place them in the buffer as they are produced. I can destruct them only when they are consumed, and at the end of the program I can free the buffer's memory.
+
 # API
 ```
 write(val) {      
