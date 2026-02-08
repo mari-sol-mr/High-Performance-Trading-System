@@ -8,3 +8,5 @@ Concepts:
   - cache false-sharing
   - infinite indeces
   - power of two properties.
+
+- [x] Test the ring buffer with Alpaca's market data stream API.
