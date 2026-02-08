@@ -11,7 +11,7 @@ After every read or write, the write and read indeces will not be updated so tha
 
 This avoids the wasted slot of other implementations and simplifies the logic.
 
-Since both producer and consumer will access the read and write indeces, they will be atomic variables to avoid data races.
+Since both producer and consumer threads will access the read and write indeces, they will be atomic variables to avoid data races.
 
 ## Size of the buffer
 Must be a power of two.   
