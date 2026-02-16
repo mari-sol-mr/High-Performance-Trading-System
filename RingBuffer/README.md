@@ -6,12 +6,32 @@ I create my own ring buffer and benchmark it against boost::lockfree::spsc_queue
 |       18,260,652.70 |               54.76 |    3.3% |     14.99 | `boost_spsc`
 
 # Design Choices
-## Infinite atomic indeces
-After every read or write, the write and read indeces will not be updated so that their value is in the "correct range" (0 - size of the buffer). Instead, they will be unsigned integers that grow unbounded and eventually wrap around to 0. 
+## Infinite atomic indices
+This choice has advantages over the other two common implementations for the ring buffer:  
+### method 1: 2 indices + wasted slot
+The wasted slot is a naive solution to the problem of distinguishing an empty buffer from a full buffer.  
 
-This avoids the wasted slot of other implementations and simplifies the logic.
+To illustrate: imagine an empty buffer of size 2. The write and read indices point to slot 0.  
+Object A is written to slot 0, and the write index is incremented to 1.  
+Object B is written to slot 1, and the write index is incremented to 2, and then wrapped around to 0 so that it's in the range [0, size - 1].  
+Now the buffer is full and both the write and read indces point to slot 0, just like in the beginning!
 
-Since both producer and consumer threads will access the read and write indeces, they will be atomic variables to avoid data races.
+So, when a buffer is empty, the write_index and read_index will point to the same slot. However, with indices that wrap around, this will also be true for when the buffer is full. 
+
+Adding a slot at the end of the buffer, which will never be written to, is a solution. This way, the write index will point to this slot when the buffer is full.
+
+### method 2: 1 index + length
+To avoid a wasted slot, we can instead just keep track of how many elements are in the buffer and the read_index.  
+The next slot to be written to will be at index mask(read_index + length).  
+The problem with this method is that both the consumer and producer thread will update length, which will slow down the application.  
+
+### final solution: 2 infinite indices
+When checking if the buffer is full or not, it's not necessary to know the exact value of the read and write indeces, we just need to know their relative position to each other. If they are equal, the buffer is empty. If their distance apart is equal to the size of the buffer, the buffer is full.  
+But how would we index the buffer to do the actual reading and writing if we let the indeces grow unbounded? We can bring the index to a normal range only at the moment when we need the real index, using the mask.  
+
+Since both producer and consumer threads will access the read and write indices, they will be atomic variables to avoid data races.  
+
+This avoids the wasted slot of method 1 and the slowness of method 2. 
 
 ## Size of the buffer
 Must be a power of two.   
